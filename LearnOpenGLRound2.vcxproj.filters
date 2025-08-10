@@ -25,4 +25,9 @@
   <ItemGroup>
     <Text Include="LibrariesNamesHelper.txt" />
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="include\stb_image.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
 </Project>
