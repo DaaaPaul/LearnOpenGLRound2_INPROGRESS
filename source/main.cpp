@@ -2,6 +2,9 @@
 #include <GLFW/glfw3.h>
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 #include <iostream>
 #include <sstream>
 #include <fstream>
@@ -26,16 +29,12 @@ bool checkShaderErrors(const unsigned shader, const char* wordName, const bool i
 		if (!success) {
 			glGetProgramInfoLog(shader, sizeof(errorMessage), NULL, errorMessage);
 			std::cout << "There was an error linking the " << wordName << ':' <<'\n' << errorMessage << '\n';
-		} else {
-			std::cout << wordName << " linked successfully\n";
 		}
 	} else {
 		glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
 		if (!success) {
 			glGetShaderInfoLog(shader, sizeof(errorMessage), NULL, errorMessage);
 			std::cout << "There was an error compiling the " << wordName << ':' << '\n' << errorMessage << '\n';
-		} else {
-			std::cout << wordName << " compiled successfully\n";
 		}
 	}
 
@@ -86,25 +85,24 @@ int main() {
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 	GLFWwindow* window = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "LearnOpenGLRound2", NULL, NULL);
-	if (window == NULL) {
-		std::cout << "Failed to load GLFW";
-		glfwTerminate();
-		return -1;
-	}
 
 	glfwMakeContextCurrent(window);
 	glfwSetFramebufferSizeCallback(window, glfwFrameBufferCallback);
-	if (!gladLoadGLLoader(reinterpret_cast<GLADloadproc>(glfwGetProcAddress))) {
-		std::cout << "Failed to load GLAD";
-		glfwTerminate();
-		return -1;
-	}
+	gladLoadGLLoader(reinterpret_cast<GLADloadproc>(glfwGetProcAddress));
 
 	unsigned program = createShaderProgram("source/shaders/VertexShader.txt", "source/shaders/FragmentShader.txt");
 
-	float vertexPositions[] = { -0.5, -0.5, 0.0, -0.5, 0.5, 0.0, 0.5, 0.5, 0.0, 0.5, -0.5, 0.0 };
+	float vertexPositions[] = { 
+		-0.5, -0.5, 0.0, 
+		-0.5,  0.5, 0.0, 
+		 0.5,  0.5, 0.0, 
+		 0.5, -0.5, 0.0 };
 	float vertexColors[] = { 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 0.0 };
-	float textureCoordinates[] = { 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 0.0 };
+	float textureCoordinates[] = { 
+		0.0, 0.0, 
+		0.0, 1.0, 
+		1.0, 1.0, 
+		1.0, 0.0 };
 	unsigned indices[] = { 0, 1, 3, 2, 1, 3 };
 	unsigned VAO, EBO, VBOPositions, VBOColors, VBOTextureCoordinates;
 	glGenVertexArrays(1, &VAO);
@@ -137,39 +135,47 @@ int main() {
 	glBindBuffer(GL_ARRAY_BUFFER, NULL);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, NULL);
 
+	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 	stbi_set_flip_vertically_on_load(true);
-	unsigned awesomefaceTexture, containerTexture;
-	glGenTextures(1, &awesomefaceTexture);
-	glBindTexture(GL_TEXTURE_2D, awesomefaceTexture);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	unsigned warwickTexture, sionTexture;
+	glGenTextures(1, &warwickTexture);
+	glBindTexture(GL_TEXTURE_2D, warwickTexture);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	int awesomefaceWidth, awesomefaceHeight, awesomefaceChannels;
-	unsigned char* awesomefaceData = stbi_load("source/textures/awesomeface.png", &awesomefaceWidth, &awesomefaceHeight, &awesomefaceChannels, 0);
-	unsigned awesomefaceFormat = (awesomefaceChannels == 4) ? GL_RGBA : GL_RGB;
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, awesomefaceWidth, awesomefaceHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, awesomefaceData); // TODO
+	int warwickWidth, warwickHeight, warwickChannels;
+	unsigned char* warwickData = stbi_load("source/textures/warwick.jpg", &warwickWidth, &warwickHeight, &warwickChannels, 0);
+	unsigned warwickFormat = (warwickChannels == 4) ? GL_RGBA : GL_RGB;
+	glTexImage2D(GL_TEXTURE_2D, 0, warwickFormat, warwickWidth, warwickHeight, 0, warwickFormat, GL_UNSIGNED_BYTE, warwickData);
 	glGenerateMipmap(GL_TEXTURE_2D);
-	stbi_image_free(awesomefaceData);
+	stbi_image_free(warwickData);
 	glBindTexture(GL_TEXTURE_2D, NULL);	
 
-	glGenTextures(1, &containerTexture);
-	glBindTexture(GL_TEXTURE_2D, containerTexture);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glGenTextures(1, &sionTexture);
+	glBindTexture(GL_TEXTURE_2D, sionTexture);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	int containerWidth, containerHeight, containerChannels;
-	unsigned char* containerData = stbi_load("source/textures/container.jpg", &containerWidth, &containerHeight, &containerChannels, 0);
-	unsigned containerFormat = (containerChannels == 4) ? GL_RGBA : GL_RGB;
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, containerWidth, containerHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, containerData); // TODO
+	int sionWidth, sionHeight, sionChannels;
+	unsigned char* sionData = stbi_load("source/textures/sion.jpg", &sionWidth, &sionHeight, &sionChannels, 0);
+	unsigned sionFormat = (sionChannels == 4) ? GL_RGBA : GL_RGB;
+	glTexImage2D(GL_TEXTURE_2D, 0, sionFormat, sionWidth, sionHeight, 0, sionFormat, GL_UNSIGNED_BYTE, sionData);
 	glGenerateMipmap(GL_TEXTURE_2D);
-	stbi_image_free(containerData);
+	stbi_image_free(sionData);
 	glBindTexture(GL_TEXTURE_2D, NULL);
 
+	glm::mat4 transformation(1.0f);
+	transformation = glm::translate(transformation, glm::vec3(0.5, -0.5, 0.0));
+
 	glUseProgram(program);
-	glUniform1i(glGetUniformLocation(program, "awesomeface"), 0);
-	glUniform1i(glGetUniformLocation(program, "container"), 1);
+	glUniform1i(glGetUniformLocation(program, "warwick"), 0);
+	glUniform1i(glGetUniformLocation(program, "sion"), 1);
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, warwickTexture);
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D, sionTexture);
 	glUseProgram(NULL);
 
 	while (!glfwWindowShouldClose(window)) {
@@ -179,13 +185,11 @@ int main() {
 		glClearColor(0.2, 0.7, 0.2, 1.0);
 		glClear(GL_COLOR_BUFFER_BIT);
 
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, awesomefaceTexture);
-		glActiveTexture(GL_TEXTURE1);
-		glBindTexture(GL_TEXTURE_2D, containerTexture);
-
 		glBindVertexArray(VAO);
 		glUseProgram(program);
+
+		transformation = glm::rotate(transformation, static_cast<float>(glfwGetTime())/50.0f, glm::vec3(0.0, 0.0, 1.0));
+		glUniformMatrix4fv(glGetUniformLocation(program, "transform"), 1, GL_FALSE, glm::value_ptr(transformation));
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
 		glfwSwapBuffers(window);
