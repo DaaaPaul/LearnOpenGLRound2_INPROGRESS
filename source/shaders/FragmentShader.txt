@@ -5,9 +5,7 @@ in vec2 textureCoordinate;
 out vec4 fragmentColor;
 
 uniform sampler2D warwick;
-uniform sampler2D sion;
 
 void main() {
-	fragmentColor = mix(mix(texture(warwick, textureCoordinate), texture(sion, textureCoordinate), 0.0),
-					vec4(color, 1.0), 0.2);
+	fragmentColor = mix(texture(warwick, textureCoordinate), vec4(color, 1.0), 0.2);
 }

@@ -137,7 +137,7 @@ int main() {
 
 	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 	stbi_set_flip_vertically_on_load(true);
-	unsigned warwickTexture, sionTexture;
+	unsigned warwickTexture;
 	glGenTextures(1, &warwickTexture);
 	glBindTexture(GL_TEXTURE_2D, warwickTexture);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
@@ -152,30 +152,18 @@ int main() {
 	stbi_image_free(warwickData);
 	glBindTexture(GL_TEXTURE_2D, NULL);	
 
-	glGenTextures(1, &sionTexture);
-	glBindTexture(GL_TEXTURE_2D, sionTexture);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	int sionWidth, sionHeight, sionChannels;
-	unsigned char* sionData = stbi_load("source/textures/sion.jpg", &sionWidth, &sionHeight, &sionChannels, 0);
-	unsigned sionFormat = (sionChannels == 4) ? GL_RGBA : GL_RGB;
-	glTexImage2D(GL_TEXTURE_2D, 0, sionFormat, sionWidth, sionHeight, 0, sionFormat, GL_UNSIGNED_BYTE, sionData);
-	glGenerateMipmap(GL_TEXTURE_2D);
-	stbi_image_free(sionData);
-	glBindTexture(GL_TEXTURE_2D, NULL);
+	glm::mat4 transformation(1.0);
+	transformation = glm::translate(transformation, glm::vec3(-0.4, -0.4, 0.0));
+	transformation = glm::rotate(transformation, glm::radians(90.0f), glm::vec3(0.0, 0.0, 1.0));
 
-	glm::mat4 transformation(1.0f);
-	transformation = glm::translate(transformation, glm::vec3(0.5, -0.5, 0.0));
+	glm::mat4 transformation2(1.0);
+	transformation2 = glm::translate(transformation2, glm::vec3(0.4, 0.4, 0.0));
+	transformation2 = glm::scale(transformation2, glm::vec3(1.5, 1.5, 0.0));
 
 	glUseProgram(program);
 	glUniform1i(glGetUniformLocation(program, "warwick"), 0);
-	glUniform1i(glGetUniformLocation(program, "sion"), 1);
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, warwickTexture);
-	glActiveTexture(GL_TEXTURE1);
-	glBindTexture(GL_TEXTURE_2D, sionTexture);
 	glUseProgram(NULL);
 
 	while (!glfwWindowShouldClose(window)) {
@@ -187,9 +175,9 @@ int main() {
 
 		glBindVertexArray(VAO);
 		glUseProgram(program);
-
-		transformation = glm::rotate(transformation, static_cast<float>(glfwGetTime())/50.0f, glm::vec3(0.0, 0.0, 1.0));
 		glUniformMatrix4fv(glGetUniformLocation(program, "transform"), 1, GL_FALSE, glm::value_ptr(transformation));
+		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+		glUniformMatrix4fv(glGetUniformLocation(program, "transform"), 1, GL_FALSE, glm::value_ptr(transformation2));
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
 		glfwSwapBuffers(window);
