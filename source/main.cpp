@@ -11,13 +11,19 @@
 
 const int WINDOW_WIDTH = 600;
 const int WINDOW_HEIGHT = 600;
+float distance = 0.0f;
+float degrees = 0.0f;
 
 void glfwFrameBufferCallback(GLFWwindow* targetWindow, const int newWidth, const int newHeight) {
-	glViewport(0, 0, newWidth, newHeight);
+	glViewport(0, 0, newWidth - 100, newHeight - 100);
 }
 
 void checkGlfwWindowActions(GLFWwindow* window) {
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) glfwSetWindowShouldClose(window, true);
+	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) distance -= 0.1f;
+	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) distance += 0.1f;
+	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) degrees += 5.0f;
+	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) degrees -= 5.0f;
 }
 
 bool checkShaderErrors(const unsigned shader, const char* wordName, const bool isProgram) {
@@ -89,104 +95,118 @@ int main() {
 	glfwMakeContextCurrent(window);
 	glfwSetFramebufferSizeCallback(window, glfwFrameBufferCallback);
 	gladLoadGLLoader(reinterpret_cast<GLADloadproc>(glfwGetProcAddress));
+	glEnable(GL_DEPTH_TEST);
 
 	unsigned program = createShaderProgram("source/shaders/VertexShader.txt", "source/shaders/FragmentShader.txt");
 
-	float vertexPositions[] = { 
-		-0.5, -0.5, 0.0, 
-		-0.5,  0.5, 0.0, 
-		 0.5,  0.5, 0.0, 
-		 0.5, -0.5, 0.0 };
-	float vertexColors[] = { 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 0.0 };
-	float textureCoordinates[] = { 
-		0.0, 0.0, 
-		0.0, 1.0, 
-		1.0, 1.0, 
-		1.0, 0.0 };
-	unsigned indices[] = { 0, 1, 3, 2, 1, 3 };
-	unsigned VAO, EBO, VBOPositions, VBOColors, VBOTextureCoordinates;
+	float verticies[] = {
+	-0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
+	 0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
+	 0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+	 0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+	-0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
+	-0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
+
+	-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+	 0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+	 0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
+	 0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
+	-0.5f,  0.5f,  0.5f,  0.0f, 1.0f,
+	-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+
+	-0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+	-0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+	-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+	-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+	-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+	-0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+
+	 0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+	 0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+	 0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+	 0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+	 0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+	 0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+
+	-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+	 0.5f, -0.5f, -0.5f,  1.0f, 1.0f,
+	 0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+	 0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+	-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+	-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+
+	-0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
+	 0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+	 0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+	 0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+	-0.5f,  0.5f,  0.5f,  0.0f, 0.0f,
+	-0.5f,  0.5f, -0.5f,  0.0f, 1.0f
+	};
+	unsigned VAO, VBO;
 	glGenVertexArrays(1, &VAO);
 	glBindVertexArray(VAO);
 	glEnableVertexAttribArray(0);
 	glEnableVertexAttribArray(1);
-	glEnableVertexAttribArray(2);
 
-	glGenBuffers(1, &VBOPositions);
-	glBindBuffer(GL_ARRAY_BUFFER, VBOPositions);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vertexPositions), vertexPositions, GL_STATIC_DRAW);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, reinterpret_cast<void*>(0));
+	glGenBuffers(1, &VBO);
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(verticies), verticies, GL_STATIC_DRAW);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), reinterpret_cast<void*>(0));
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), reinterpret_cast<void*>(3 * sizeof(float)));
+	
 	glBindBuffer(GL_ARRAY_BUFFER, NULL);
-
-	glGenBuffers(1, &VBOColors);
-	glBindBuffer(GL_ARRAY_BUFFER, VBOColors);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vertexColors), vertexColors, GL_STATIC_DRAW);
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, reinterpret_cast<void*>(0));
-
-	glGenBuffers(1, &VBOTextureCoordinates);
-	glBindBuffer(GL_ARRAY_BUFFER, VBOTextureCoordinates);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(textureCoordinates), textureCoordinates, GL_STATIC_DRAW);
-	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 0, reinterpret_cast<void*>(0));
-
-	glGenBuffers(1, &EBO);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
-
 	glBindVertexArray(NULL);
-	glBindBuffer(GL_ARRAY_BUFFER, NULL);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, NULL);
 
 	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-	stbi_set_flip_vertically_on_load(true);
-	unsigned warwickTexture;
-	glGenTextures(1, &warwickTexture);
-	glBindTexture(GL_TEXTURE_2D, warwickTexture);
+	unsigned sionTexture;
+	glGenTextures(1, &sionTexture);
+	glBindTexture(GL_TEXTURE_2D, sionTexture);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	int warwickWidth, warwickHeight, warwickChannels;
-	unsigned char* warwickData = stbi_load("source/textures/warwick.jpg", &warwickWidth, &warwickHeight, &warwickChannels, 0);
-	unsigned warwickFormat = (warwickChannels == 4) ? GL_RGBA : GL_RGB;
-	glTexImage2D(GL_TEXTURE_2D, 0, warwickFormat, warwickWidth, warwickHeight, 0, warwickFormat, GL_UNSIGNED_BYTE, warwickData);
+	int sionWidth, sionHeight, sionChannels;
+	unsigned char* sionData = stbi_load("source/textures/sion.jpg", &sionWidth, &sionHeight, &sionChannels, 0);
+	unsigned sionFormat = (sionChannels == 4) ? GL_RGBA : GL_RGB;
+	glTexImage2D(GL_TEXTURE_2D, 0, sionFormat, sionWidth, sionHeight, 0, sionFormat, GL_UNSIGNED_BYTE, sionData);
 	glGenerateMipmap(GL_TEXTURE_2D);
-	stbi_image_free(warwickData);
+	stbi_image_free(sionData);
 	glBindTexture(GL_TEXTURE_2D, NULL);	
 
-	glm::mat4 transformation(1.0);
-	transformation = glm::translate(transformation, glm::vec3(-0.4, -0.4, 0.0));
-	transformation = glm::rotate(transformation, glm::radians(90.0f), glm::vec3(0.0, 0.0, 1.0));
-
-	glm::mat4 transformation2(1.0);
-	transformation2 = glm::translate(transformation2, glm::vec3(0.4, 0.4, 0.0));
-	transformation2 = glm::scale(transformation2, glm::vec3(1.5, 1.5, 0.0));
-
 	glUseProgram(program);
-	glUniform1i(glGetUniformLocation(program, "warwick"), 0);
+	glUniform1i(glGetUniformLocation(program, "sion"), 0);
 	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, warwickTexture);
+	glBindTexture(GL_TEXTURE_2D, sionTexture);
 	glUseProgram(NULL);
+
+	glm::mat4 model(1.0);
+	model = glm::rotate(model, glm::radians(-75.0f), glm::vec3(1.0, 0.0, 0.0));
+	glm::mat4 view(1.0);
+	view = glm::translate(view, glm::vec3(0.0, 0.0, -3.0));
+	glm::mat4 projection = glm::perspective(glm::radians(45.0f), static_cast<float>(WINDOW_WIDTH) / WINDOW_HEIGHT, 0.1f, 100.0f);
 
 	while (!glfwWindowShouldClose(window)) {
 		glfwPollEvents();
 		checkGlfwWindowActions(window);
+		view = glm::translate(view, glm::vec3(0.0, 0.0, distance));
+		distance = 0.0f;
+		model = glm::rotate(model, glm::radians(degrees), glm::vec3(0.5, 1.0, 0.0));
+		degrees = 0.0f;
 
 		glClearColor(0.2, 0.7, 0.2, 1.0);
-		glClear(GL_COLOR_BUFFER_BIT);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		glBindVertexArray(VAO);
 		glUseProgram(program);
-		glUniformMatrix4fv(glGetUniformLocation(program, "transform"), 1, GL_FALSE, glm::value_ptr(transformation));
-		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-		glUniformMatrix4fv(glGetUniformLocation(program, "transform"), 1, GL_FALSE, glm::value_ptr(transformation2));
-		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+		glUniformMatrix4fv(glGetUniformLocation(program, "model"), 1, GL_FALSE, glm::value_ptr(model));
+		glUniformMatrix4fv(glGetUniformLocation(program, "view"), 1, GL_FALSE, glm::value_ptr(view));
+		glUniformMatrix4fv(glGetUniformLocation(program, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
+		glDrawArrays(GL_TRIANGLES, 0, 36);
 
 		glfwSwapBuffers(window);
 	}
 
-	glDeleteBuffers(1, &VBOPositions);
-	glDeleteBuffers(1, &VBOColors);
-	glDeleteBuffers(1, &VBOTextureCoordinates);
-	glDeleteBuffers(1, &EBO);
+	glDeleteBuffers(1, &VBO);
 	glDeleteVertexArrays(1, &VAO);
 	glDeleteProgram(program);
 	glfwTerminate();
